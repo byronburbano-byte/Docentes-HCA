@@ -27,6 +27,7 @@
             color: white;
             padding: 25px 30px;
             text-align: center;
+            position: relative;
         }
         .header .school-name {
             font-size: 2.4em;
@@ -56,6 +57,31 @@
             font-weight: bold;
             font-size: 0.65em;
             margin-left: 8px;
+        }
+        .connection-status {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.75em;
+            background: rgba(255,255,255,0.1);
+            padding: 6px 14px;
+            border-radius: 20px;
+            color: #e0e7ff;
+        }
+        .connection-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ef4444;
+            animation: pulse 1.5s infinite;
+        }
+        .connection-dot.online { background: #10b981; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
         }
         .revision-selector {
             background: white;
@@ -129,6 +155,7 @@
         .btn-danger { background: #dc2626; color: white; }
         .btn-secondary { background: #64748b; color: white; }
         .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,0.15); }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
         .stats {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -451,6 +478,7 @@
             .heatmap-cell .tooltip { display: none !important; }
             .revision-selector { flex-direction: column; align-items: stretch; gap: 10px; }
             .revision-selector select { min-width: auto; width: 100%; }
+            .connection-status { position: static; margin-top: 10px; justify-content: center; }
         }
     </style>
 </head>
@@ -460,6 +488,10 @@
 
     <!-- HEADER -->
     <div class="header">
+        <div class="connection-status" id="connectionStatus">
+            <span class="connection-dot" id="connectionDot"></span>
+            <span id="connectionText">Conectando...</span>
+        </div>
         <div class="school-name">HOPE CHRISTIAN ACADEMY</div>
         <div class="school-motto">"Educando con Excelencia y Valores Cristianos"</div>
         <h1><i class="fas fa-fire"></i> Heatmap de Cumplimiento Docentes <span class="year-badge">2026 - 2027</span></h1>
@@ -491,8 +523,7 @@
         <button class="btn btn-primary" onclick="exportarExcel()"><i class="fas fa-file-excel"></i> Exportar Excel</button>
         <button class="btn btn-success" onclick="marcarTodosCompletos()"><i class="fas fa-check-double"></i> Todos Completos</button>
         <button class="btn btn-warning" onclick="limpiarTodo()"><i class="fas fa-undo"></i> Reiniciar</button>
-        <button class="btn btn-info" onclick="guardarDatos()"><i class="fas fa-save"></i> Guardar</button>
-        <button class="btn btn-secondary" onclick="descargarComoHTML()"><i class="fas fa-download"></i> Descargar HTML</button>
+        <button class="btn btn-info" onclick="forzarGuardado()"><i class="fas fa-save"></i> Guardar</button>
         <input type="date" id="fechaActual" style="padding:10px;border-radius:8px;border:2px solid #e2e8f0;font-size:14px;">
     </div>
 
@@ -528,7 +559,7 @@
     </div>
 
     <div class="footer">
-        Hope Christian Academy © 2026-2027 · Sistema de Gestión Docente - Bachillerato
+        Hope Christian Academy © 2026-2027 · Sistema de Gestión Docente - Bachillerato · <span id="lastUpdate">Sin cambios</span>
     </div>
 </div>
 
@@ -558,10 +589,35 @@
     </div>
 </div>
 
+<!-- ============================================================ -->
+<!-- FIREBASE SDK                                                  -->
+<!-- ============================================================ -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getFirestore, doc, setDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyB_dr7k31pU7QDYH9_D9pUUVDCP1gtNgH4",
+        authDomain: "hca-docentes-bachillerato.firebaseapp.com",
+        projectId: "hca-docentes-bachillerato",
+        storageBucket: "hca-docentes-bachillerato.firebasestorage.app",
+        messagingSenderId: "467975526022",
+        appId: "1:467975526022:web:e1b3c2a463df36e5246307"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const DOC_ID = 'estadoActual';
+
+    window.fb = { db, doc, setDoc, onSnapshot, serverTimestamp, DOC_ID };
+
+    window.dispatchEvent(new Event('firebase-ready'));
+</script>
+
+<!-- ============================================================ -->
+<!-- SCRIPT PRINCIPAL                                              -->
+<!-- ============================================================ -->
 <script>
-    // ============================================================
-    //  DATOS INICIALES - BACHILLERATO 2026-2027 (ACTUALIZADO)
-    // ============================================================
     const datosIniciales = {
         '1ero BGU': [
             { docente: 'Ms Ingrit Cabezas', materia: 'Matemática' },
@@ -625,35 +681,9 @@
     let notificacionesPendientes = 0;
     let docenteActualNotificacion = null;
     let tipoRevisionActual = 'PCA';
-
-    // ============================================================
-    //  INICIALIZACIÓN
-    // ============================================================
-    function inicializarApp() {
-        // 1. Generar datos desde cero
-        generarDatosIniciales();
-
-        // 2. Intentar recuperar datos guardados
-        try {
-            const guardado = localStorage.getItem('checklistBachillerato');
-            if (guardado) {
-                const parsed = JSON.parse(guardado);
-                if (parsed.datosDocentes && parsed.datosDocentes.length === datosDocentes.length) {
-                    datosDocentes = parsed.datosDocentes;
-                    contadorDocente = parsed.contadorDocente || datosDocentes.length + 1;
-                    notificacionesPendientes = parsed.notificacionesPendientes || 0;
-                    tipoRevisionActual = parsed.tipoRevisionActual || 'PCA';
-                }
-            }
-        } catch(e) { /* ignorar errores de localStorage */ }
-
-        // 3. Renderizar todo
-        renderizarTodo();
-        document.getElementById('fechaActual').value = new Date().toISOString().split('T')[0];
-        document.getElementById('tipoRevision').value = tipoRevisionActual;
-        actualizarIndicadorRevision();
-        actualizarContadorNotificaciones();
-    }
+    let firebaseReady = false;
+    let guardando = false;
+    let ultimaActualizacionRemota = 0;
 
     function generarDatosIniciales() {
         datosDocentes = [];
@@ -675,35 +705,114 @@
         });
     }
 
-    // ============================================================
-    //  TIPO DE REVISIÓN
-    // ============================================================
+    function inicializarApp() {
+        generarDatosIniciales();
+        try {
+            const guardado = localStorage.getItem('checklistBachillerato');
+            if (guardado) {
+                const parsed = JSON.parse(guardado);
+                if (parsed.datosDocentes && parsed.datosDocentes.length === datosDocentes.length) {
+                    datosDocentes = parsed.datosDocentes;
+                    contadorDocente = parsed.contadorDocente || datosDocentes.length + 1;
+                    notificacionesPendientes = parsed.notificacionesPendientes || 0;
+                    tipoRevisionActual = parsed.tipoRevisionActual || 'PCA';
+                }
+            }
+        } catch(e) { }
+        renderizarTodo();
+        document.getElementById('fechaActual').value = new Date().toISOString().split('T')[0];
+        document.getElementById('tipoRevision').value = tipoRevisionActual;
+        actualizarIndicadorRevision();
+    }
+
+    function escucharFirebase() {
+        const { db, doc, onSnapshot, DOC_ID } = window.fb;
+        onSnapshot(doc(db, 'checklistBachillerato', DOC_ID), (snap) => {
+            if (!firebaseReady) {
+                firebaseReady = true;
+                actualizarEstadoConexion(true, 'Conectado en tiempo real');
+            }
+            if (!snap.exists()) {
+                guardarEnFirebase(true);
+                return;
+            }
+            const data = snap.data();
+            if (data.updatedAt && data.updatedAt !== ultimaActualizacionRemota) {
+                ultimaActualizacionRemota = data.updatedAt;
+                if (data.datosDocentes) {
+                    datosDocentes = data.datosDocentes;
+                    notificacionesPendientes = data.notificacionesPendientes || 0;
+                    tipoRevisionActual = data.tipoRevisionActual || 'PCA';
+                    document.getElementById('tipoRevision').value = tipoRevisionActual;
+                    actualizarIndicadorRevision();
+                    renderizarTodo();
+                    actualizarUltimaModificacion(data.fechaModificacion, data.usuarioModifico);
+                    mostrarNotificacion('🔄 Actualizado desde otro dispositivo', 'info');
+                }
+            }
+        }, (error) => {
+            console.error('Error en onSnapshot:', error);
+            actualizarEstadoConexion(false, 'Error de conexión');
+        });
+    }
+
+    async function guardarEnFirebase(silencioso = false) {
+        if (!firebaseReady || guardando) return;
+        try {
+            guardando = true;
+            const { db, doc, setDoc, DOC_ID } = window.fb;
+            const ahora = new Date().toISOString();
+            ultimaActualizacionRemota = ahora;
+            await setDoc(doc(db, 'checklistBachillerato', DOC_ID), {
+                datosDocentes,
+                notificacionesPendientes,
+                tipoRevisionActual,
+                updatedAt: ahora,
+                fechaModificacion: new Date().toLocaleString('es-ES'),
+                usuarioModifico: 'Coordinador'
+            });
+            try {
+                localStorage.setItem('checklistBachillerato', JSON.stringify({
+                    datosDocentes, contadorDocente, notificacionesPendientes, tipoRevisionActual
+                }));
+            } catch(e) {}
+            if (!silencioso) mostrarNotificacion('💾 Guardado en la nube', 'success');
+        } catch (e) {
+            console.error('Error al guardar:', e);
+            if (!silencioso) mostrarNotificacion('❌ Error al guardar', 'danger');
+        } finally {
+            guardando = false;
+        }
+    }
+
+    function forzarGuardado() { guardarEnFirebase(false); }
+
+    function actualizarEstadoConexion(online, texto) {
+        const dot = document.getElementById('connectionDot');
+        const txt = document.getElementById('connectionText');
+        if (online) { dot.classList.add('online'); txt.textContent = texto; }
+        else { dot.classList.remove('online'); txt.textContent = texto; }
+    }
+
+    function actualizarUltimaModificacion(fecha, usuario) {
+        const el = document.getElementById('lastUpdate');
+        if (fecha) el.innerHTML = `Última actualización: ${fecha}${usuario ? ' por ' + usuario : ''}`;
+    }
+
     function cambiarTipoRevision() {
-        const selector = document.getElementById('tipoRevision');
-        tipoRevisionActual = selector.value;
+        tipoRevisionActual = document.getElementById('tipoRevision').value;
         actualizarIndicadorRevision();
         mostrarNotificacion(`Cambiado a: ${tiposRevision[tipoRevisionActual].nombre}`, 'info');
-        guardarDatos();
+        guardarEnFirebase(true);
     }
 
     function actualizarIndicadorRevision() {
         const info = tiposRevision[tipoRevisionActual];
         document.getElementById('revisionTexto').textContent = info.nombre;
-        const indicador = document.getElementById('revisionIndicator');
-        const colores = {
-            'PCA': '#3b82f6',
-            'PUD': '#16a34a',
-            'INSUMOS': '#d97706',
-            'REFUERZOS': '#ec4899',
-            'PROYECTOS': '#7c3aed',
-            'INSTRUMENTOS': '#dc2626'
-        };
-        indicador.style.borderLeftColor = colores[tipoRevisionActual] || '#3b82f6';
+        const colores = { 'PCA': '#3b82f6', 'PUD': '#16a34a', 'INSUMOS': '#d97706', 'REFUERZOS': '#ec4899', 'PROYECTOS': '#7c3aed', 'INSTRUMENTOS': '#dc2626' };
+        document.getElementById('revisionIndicator').style.borderLeftColor = colores[tipoRevisionActual] || '#3b82f6';
     }
 
-    // ============================================================
-    //  RENDERIZADO
-    // ============================================================
     function renderizarTodo() {
         renderizarHeatmap();
         renderizarTablaDetallada();
@@ -714,28 +823,13 @@
     function renderizarHeatmap() {
         const grid = document.getElementById('heatmapGrid');
         grid.innerHTML = '';
-
         datosDocentes.forEach(d => {
             const celda = document.createElement('div');
             celda.className = 'heatmap-cell';
-
-            let estadoClase = 'sin-info';
-            let estadoTexto = 'Sin info';
-            let icono = '❓';
-            if (d.entregado) {
-                estadoClase = 'completado';
-                estadoTexto = 'Completado';
-                icono = '✅';
-            } else if (d.notificado) {
-                estadoClase = 'notificado';
-                estadoTexto = 'Notificado';
-                icono = '📧';
-            } else {
-                estadoClase = 'pendiente';
-                estadoTexto = 'Pendiente';
-                icono = '⏳';
-            }
-
+            let estadoClase = 'sin-info', estadoTexto = 'Sin info', icono = '❓';
+            if (d.entregado) { estadoClase = 'completado'; estadoTexto = 'Completado'; icono = '✅'; }
+            else if (d.notificado) { estadoClase = 'notificado'; estadoTexto = 'Notificado'; icono = '📧'; }
+            else { estadoClase = 'pendiente'; estadoTexto = 'Pendiente'; icono = '⏳'; }
             celda.classList.add(estadoClase);
             celda.innerHTML = `
                 <div class="estado-icono">${icono}</div>
@@ -747,15 +841,12 @@
                     <div class="tt-row"><span class="tt-label">Nivel</span><span>${d.nivel}</span></div>
                     <div class="tt-row"><span class="tt-label">Estado</span><span>${estadoTexto}</span></div>
                     ${d.fechaEntrega ? `<div class="tt-row"><span class="tt-label">Fecha</span><span>${d.fechaEntrega}</span></div>` : ''}
-                    <div class="tt-row"><span class="tt-label">Revisión</span><span>${tiposRevision[tipoRevisionActual].nombre}</span></div>
                 </div>
             `;
-
             celda.addEventListener('click', function(e) {
                 if (e.target.closest('.tooltip')) return;
                 toggleEntregado(d.id, !d.entregado);
             });
-
             grid.appendChild(celda);
         });
     }
@@ -764,17 +855,14 @@
         const tbody = document.getElementById('cuerpoTabla');
         tbody.innerHTML = '';
         let nivelActual = '';
-
         datosDocentes.forEach(d => {
             const fila = document.createElement('tr');
             const celdaNivel = nivelActual !== d.nivel ? d.nivel : '';
             if (nivelActual !== d.nivel) nivelActual = d.nivel;
-
             let estadoClase = '', estadoTexto = '';
             if (d.notificado) { estadoClase = 'status-notificado'; estadoTexto = 'Notificado'; }
             else if (d.entregado) { estadoClase = 'status-completado'; estadoTexto = 'Completado'; }
             else { estadoClase = 'status-pendiente'; estadoTexto = 'Pendiente'; }
-
             let notifHTML = '';
             if (!d.entregado && !d.notificado) {
                 notifHTML = `<button class="notify-btn" onclick="mostrarModalNotificacion(${d.id})"><i class="fas fa-bell"></i> Notificar</button>`;
@@ -783,7 +871,6 @@
             } else {
                 notifHTML = `<span style="color:#16a34a;font-weight:600;"><i class="fas fa-check-circle"></i> Completado</span>`;
             }
-
             fila.innerHTML = `
                 <td><strong>${celdaNivel}</strong></td>
                 <td>${d.docente}</td>
@@ -798,31 +885,22 @@
         });
     }
 
-    // ============================================================
-    //  ACCIONES
-    // ============================================================
     function toggleEntregado(id, checked) {
         const d = datosDocentes.find(x => x.id === id);
         if (!d) return;
-        if (checked && d.notificado) {
-            d.notificado = false;
-            d.fechaNotificacion = '';
-            notificacionesPendientes--;
-        }
+        if (checked && d.notificado) { d.notificado = false; d.fechaNotificacion = ''; notificacionesPendientes = Math.max(0, notificacionesPendientes - 1); }
         d.entregado = checked;
-        if (checked && !d.fechaEntrega) {
-            d.fechaEntrega = new Date().toISOString().split('T')[0];
-        }
+        if (checked && !d.fechaEntrega) d.fechaEntrega = new Date().toISOString().split('T')[0];
         if (!checked) d.fechaEntrega = '';
         renderizarTodo();
-        guardarDatos();
+        guardarEnFirebase(true);
     }
 
     function actualizarCampo(id, campo, valor) {
         const d = datosDocentes.find(x => x.id === id);
         if (d) d[campo] = valor;
         renderizarTodo();
-        guardarDatos();
+        guardarEnFirebase(true);
     }
 
     function mostrarModalNotificacion(id) {
@@ -836,9 +914,7 @@
         }
     }
 
-    function cerrarModal() {
-        document.getElementById('emailModal').style.display = 'none';
-    }
+    function cerrarModal() { document.getElementById('emailModal').style.display = 'none'; }
 
     function enviarNotificacion() {
         if (docenteActualNotificacion) {
@@ -847,13 +923,14 @@
             docenteActualNotificacion.fechaNotificacion = fechaActual.split(',')[0];
             notificacionesPendientes++;
             renderizarTodo();
-            guardarDatos();
+            guardarEnFirebase(true);
             cerrarModal();
             mostrarNotificacion(`📧 Recordatorio enviado a ${docenteActualNotificacion.docente}`, 'info');
         }
     }
 
     function marcarTodosCompletos() {
+        if (!confirm('¿Marcar TODOS los docentes como Completados?')) return;
         const fecha = new Date().toISOString().split('T')[0];
         datosDocentes.forEach(d => {
             d.entregado = true;
@@ -863,29 +940,20 @@
         });
         notificacionesPendientes = 0;
         renderizarTodo();
-        guardarDatos();
+        guardarEnFirebase(true);
         mostrarNotificacion('✅ Todos marcados como completos', 'info');
     }
 
     function limpiarTodo() {
         if (!confirm('¿Reiniciar todos los estados a Pendiente?')) return;
         datosDocentes.forEach(d => {
-            d.entregado = false;
-            d.fechaEntrega = '';
-            d.observaciones = '';
-            d.notificado = false;
-            d.fechaNotificacion = '';
+            d.entregado = false; d.fechaEntrega = ''; d.observaciones = '';
+            d.notificado = false; d.fechaNotificacion = '';
         });
         notificacionesPendientes = 0;
         renderizarTodo();
-        guardarDatos();
+        guardarEnFirebase(true);
         mostrarNotificacion('🔄 Datos reiniciados', 'warning');
-    }
-
-    function guardarDatos() {
-        const datos = { datosDocentes, contadorDocente, notificacionesPendientes, tipoRevisionActual };
-        localStorage.setItem('checklistBachillerato', JSON.stringify(datos));
-        mostrarNotificacion('💾 Datos guardados', 'success');
     }
 
     function actualizarEstadisticas() {
@@ -894,7 +962,6 @@
         const pendientes = datosDocentes.filter(d => !d.entregado && !d.notificado).length;
         const notificados = datosDocentes.filter(d => d.notificado).length;
         const porcentaje = total ? Math.round((completados / total) * 100) : 0;
-
         document.getElementById('totalDocentes').textContent = total;
         document.getElementById('completados').textContent = completados;
         document.getElementById('pendientes').textContent = pendientes;
@@ -918,46 +985,32 @@
         if (tipo === 'success') notification.style.background = '#16a34a';
         else if (tipo === 'warning') notification.style.background = '#d97706';
         else if (tipo === 'info') notification.style.background = '#3b82f6';
+        else if (tipo === 'danger') notification.style.background = '#dc2626';
         notification.classList.add('show');
         setTimeout(() => notification.classList.remove('show'), 3000);
     }
 
-    // ============================================================
-    //  EXPORTAR
-    // ============================================================
     function exportarExcel() {
         const info = tiposRevision[tipoRevisionActual];
-        let html = `
-            <html><head><meta charset="UTF-8">
-            <style>
-                table { border-collapse: collapse; width: 100%; }
-                th, td { border: 1px solid #000; padding: 8px; text-align: left; }
-                th { background: #0c1a4a; color: white; font-weight: bold; }
-                .completado { background: #d1fae5; }
-                .pendiente { background: #fef3c7; }
-                .notificado { background: #dbeafe; }
-            </style>
-            </head><body>
+        let html = `<html><head><meta charset="UTF-8"><style>
+            table { border-collapse: collapse; width: 100%; }
+            th, td { border: 1px solid #000; padding: 8px; text-align: left; }
+            th { background: #0c1a4a; color: white; font-weight: bold; }
+            .completado { background: #d1fae5; }
+            .pendiente { background: #fef3c7; }
+            .notificado { background: #dbeafe; }
+            </style></head><body>
             <h1>Hope Christian Academy - Heatmap Docentes Bachillerato 2026-2027</h1>
             <h2>Revisión: ${info.icono} ${info.nombre}</h2>
             <table>
                 <tr><th>Nivel</th><th>Docente</th><th>Materia</th><th>Estado</th><th>Fecha Entrega</th><th>Notificado</th></tr>`;
         datosDocentes.forEach(d => {
-            let estado = 'Pendiente';
-            let clase = 'pendiente';
+            let estado = 'Pendiente', clase = 'pendiente';
             if (d.entregado) { estado = 'Completado'; clase = 'completado'; }
             else if (d.notificado) { estado = 'Notificado'; clase = 'notificado'; }
-            html += `<tr class="${clase}">
-                <td>${d.nivel}</td>
-                <td>${d.docente}</td>
-                <td>${d.materia}</td>
-                <td>${estado}</td>
-                <td>${d.fechaEntrega || '-'}</td>
-                <td>${d.notificado ? 'Sí' : 'No'}</td>
-            </tr>`;
+            html += `<tr class="${clase}"><td>${d.nivel}</td><td>${d.docente}</td><td>${d.materia}</td><td>${estado}</td><td>${d.fechaEntrega || '-'}</td><td>${d.notificado ? 'Sí' : 'No'}</td></tr>`;
         });
         html += `</table></body></html>`;
-
         const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
@@ -968,23 +1021,14 @@
         mostrarNotificacion('📊 Excel generado', 'info');
     }
 
-    function descargarComoHTML() {
-        guardarDatos();
-        const html = document.documentElement.outerHTML;
-        const blob = new Blob([html], { type: 'text/html' });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = 'checklist_bachillerato_2026-2027.html';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        mostrarNotificacion('📥 HTML descargado', 'success');
-    }
+    window.addEventListener('firebase-ready', () => {
+        inicializarApp();
+        escucharFirebase();
+    });
 
-    // ============================================================
-    //  INICIO
-    // ============================================================
-    window.onload = inicializarApp;
+    window.onload = () => {
+        setTimeout(() => { if (!firebaseReady) inicializarApp(); }, 500);
+    };
 </script>
 
 </body>
