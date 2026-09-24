@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Heatmap Cumplimiento Docentes Bachillerato 2026-2027 - Hope Christian Academy</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0c1a4a 0%, #1a3a8f 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #1e293b;
+        }
+        .container {
+            max-width: 1300px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(45deg, #0c1a4a, #1a3a8f);
+            color: white;
+            padding: 25px 30px;
+            text-align: center;
+        }
+        .header .school-name {
+            font-size: 2.4em;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .header .school-motto {
+            font-style: italic;
+            opacity: 0.85;
+            font-size: 1.1em;
+            margin-top: 2px;
+            color: #c7d2fe;
+        }
+        .header h1 {
+            font-size: 1.6em;
+            font-weight: 300;
+            margin-top: 12px;
+        }
+        .header h1 i { margin-right: 10px; }
+        .header p { opacity: 0.9; font-size: 1em; margin-top: 4px; color: #e0e7ff; }
+        .year-badge {
+            background: linear-gradient(45deg, #f59e0b, #d97706);
+            color: white;
+            padding: 4px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.65em;
+            margin-left: 8px;
+        }
+        .revision-selector {
+            background: white;
+            padding: 14px 30px;
+            border-bottom: 2px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .revision-selector label {
+            font-weight: 700;
+            color: #0c1a4a;
+            font-size: 1em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .revision-selector select {
+            padding: 10px 18px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 0.95em;
+            font-weight: 600;
+            background: #f8fafc;
+            cursor: pointer;
+            min-width: 280px;
+            transition: all 0.3s ease;
+        }
+        .revision-selector select:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+        .revision-indicator {
+            font-size: 1.1em;
+            font-weight: 700;
+            color: #0c1a4a;
+            padding: 5px 18px;
+            background: #f1f5f9;
+            border-radius: 8px;
+            border-left: 4px solid #3b82f6;
+        }
+        .controls {
+            padding: 14px 30px;
+            background: #f0f7ff;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+            border-bottom: 1px solid #dbeafe;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            text-transform: uppercase;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .btn-primary { background: #3b82f6; color: white; }
+        .btn-success { background: #16a34a; color: white; }
+        .btn-warning { background: #d97706; color: white; }
+        .btn-info { background: #0ea5e9; color: white; }
+        .btn-danger { background: #dc2626; color: white; }
+        .btn-secondary { background: #64748b; color: white; }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,0.15); }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 14px;
+            padding: 16px 30px;
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .stat-card {
+            background: white;
+            padding: 12px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            border-left: 4px solid #3b82f6;
+        }
+        .stat-number { font-size: 1.8em; font-weight: 700; color: #0c1a4a; }
+        .stat-label { font-size: 0.7em; color: #64748b; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; }
+        .heatmap-section {
+            padding: 20px 30px;
+            background: #ffffff;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        .heatmap-section h2 {
+            font-size: 1.3em;
+            color: #0c1a4a;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .heatmap-section h2 i { color: #3b82f6; }
+        .heatmap-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 8px;
+            padding: 16px;
+            background: #f8fafc;
+            border-radius: 14px;
+            border: 1px solid #e2e8f0;
+            min-height: 100px;
+        }
+        .heatmap-cell {
+            background: #f1f5f9;
+            border-radius: 10px;
+            padding: 12px 8px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 2px solid transparent;
+            position: relative;
+            min-height: 70px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .heatmap-cell:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+            z-index: 10;
+            border-color: #0c1a4a;
+        }
+        .heatmap-cell .docente-nombre {
+            font-weight: 600;
+            font-size: 0.75rem;
+            line-height: 1.2;
+            color: #1e293b;
+        }
+        .heatmap-cell .docente-materia {
+            font-size: 0.6rem;
+            color: #64748b;
+            margin-top: 2px;
+        }
+        .heatmap-cell .estado-icono {
+            font-size: 1.1rem;
+            margin-bottom: 3px;
+        }
+        .heatmap-cell.completado {
+            background: #d1fae5;
+            border-color: #16a34a;
+        }
+        .heatmap-cell.completado .docente-nombre { color: #065f46; }
+        .heatmap-cell.pendiente {
+            background: #fef3c7;
+            border-color: #d97706;
+        }
+        .heatmap-cell.pendiente .docente-nombre { color: #92400e; }
+        .heatmap-cell.notificado {
+            background: #dbeafe;
+            border-color: #3b82f6;
+        }
+        .heatmap-cell.notificado .docente-nombre { color: #1e40af; }
+        .heatmap-cell.sin-info {
+            background: #f1f5f9;
+            border-color: #94a3b8;
+            opacity: 0.6;
+        }
+        .heatmap-cell .tooltip {
+            display: none;
+            position: absolute;
+            bottom: calc(100% + 10px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: #0c1a4a;
+            color: white;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            white-space: nowrap;
+            z-index: 100;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+            min-width: 180px;
+            text-align: left;
+        }
+        .heatmap-cell .tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-top-color: #0c1a4a;
+        }
+        .heatmap-cell:hover .tooltip { display: block; }
+        .heatmap-cell .tooltip .tt-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
+            padding: 2px 0;
+        }
+        .heatmap-cell .tooltip .tt-label { opacity: 0.7; }
+        .heatmap-legend {
+            display: flex;
+            gap: 25px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 15px;
+            padding: 10px 20px;
+            background: #f8fafc;
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+        }
+        .heatmap-legend .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        .heatmap-legend .color-box {
+            width: 22px;
+            height: 22px;
+            border-radius: 6px;
+            border: 1px solid #94a3b8;
+        }
+        .heatmap-legend .color-box.completado { background: #d1fae5; border-color: #16a34a; }
+        .heatmap-legend .color-box.pendiente { background: #fef3c7; border-color: #d97706; }
+        .heatmap-legend .color-box.notificado { background: #dbeafe; border-color: #3b82f6; }
+        .table-container {
+            padding: 20px 30px;
+            overflow-x: auto;
+        }
+        .excel-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.82rem;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+        }
+        .excel-table th {
+            background: #0c1a4a;
+            color: white;
+            padding: 10px 8px;
+            text-align: left;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.65rem;
+            letter-spacing: 0.5px;
+        }
+        .excel-table td {
+            padding: 8px;
+            border-bottom: 1px solid #eef2f6;
+        }
+        .excel-table tr:nth-child(even) { background: #fafcff; }
+        .excel-table tr:hover { background: #f1f5f9; }
+        .status-badge {
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+        .status-completado { background: #d1fae5; color: #065f46; }
+        .status-pendiente { background: #fef3c7; color: #92400e; }
+        .status-notificado { background: #dbeafe; color: #1e40af; }
+        .custom-checkbox {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: #3b82f6;
+        }
+        .notify-btn {
+            background: linear-gradient(45deg, #7c3aed, #6d28d9);
+            color: white;
+            padding: 4px 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 600;
+            transition: 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .notify-btn:hover { transform: scale(1.05); box-shadow: 0 4px 12px rgba(124,58,237,0.3); }
+        .notify-btn-notificado {
+            background: #94a3b8;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            opacity: 0.7;
+        }
+        .footer {
+            text-align: center;
+            padding: 16px;
+            background: #0c1a4a;
+            color: white;
+            font-size: 0.85rem;
+        }
+        .save-notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #3b82f6;
+            color: white;
+            padding: 14px 24px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.4s;
+            z-index: 999;
+            font-weight: 500;
+        }
+        .save-notification.show { transform: translateY(0); opacity: 1; }
+        .notification-badge {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #dc2626;
+            color: white;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+            font-size: 14px;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            position: relative;
+        }
+        .modal-title {
+            margin-top: 0;
+            color: #0c1a4a;
+            font-size: 1.5em;
+            border-bottom: 2px solid #3b82f6;
+            padding-bottom: 10px;
+        }
+        .modal-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-size: 24px;
+            cursor: pointer;
+            color: #7f8c8d;
+        }
+        .modal-close:hover { color: #dc2626; }
+        .modal-info { margin: 15px 0; line-height: 1.6; }
+        .modal-info strong { color: #0c1a4a; }
+
+        @media (max-width: 768px) {
+            .header .school-name { font-size: 1.6em; }
+            .header h1 { font-size: 1.2em; }
+            .controls { flex-direction: column; }
+            .btn { width: 100%; justify-content: center; }
+            .stats { grid-template-columns: 1fr 1fr; }
+            .heatmap-section { padding: 12px; }
+            .heatmap-grid { grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); }
+            .heatmap-cell { min-height: 55px; padding: 6px 4px; }
+            .heatmap-cell .docente-nombre { font-size: 0.6rem; }
+            .heatmap-cell .tooltip { display: none !important; }
+            .revision-selector { flex-direction: column; align-items: stretch; gap: 10px; }
+            .revision-selector select { min-width: auto; width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <!-- HEADER -->
+    <div class="header">
+        <div class="school-name">HOPE CHRISTIAN ACADEMY</div>
+        <div class="school-motto">"Educando con Excelencia y Valores Cristianos"</div>
+        <h1><i class="fas fa-fire"></i> Heatmap de Cumplimiento Docentes <span class="year-badge">2026 - 2027</span></h1>
+        <p>Bachillerato · Control de Entrega de Documentos · Mr. Byron Burbano</p>
+    </div>
+
+    <!-- SELECTOR DE TIPO DE REVISIÓN -->
+    <div class="revision-selector">
+        <label for="tipoRevision">
+            <i class="fas fa-sync-alt" style="color: #3b82f6;"></i>
+            Tipo de Revisión:
+        </label>
+        <select id="tipoRevision" onchange="cambiarTipoRevision()">
+            <option value="PCA">📋 PCA (Plan Curricular Anual)</option>
+            <option value="PUD">📝 PUD (Planificación Unidad Didáctica)</option>
+            <option value="INSUMOS">📦 Insumos y Materiales</option>
+            <option value="REFUERZOS">🔄 Refuerzos Académicos</option>
+            <option value="PROYECTOS">📌 Proyectos</option>
+            <option value="INSTRUMENTOS">📊 Instrumentos de Evaluación</option>
+        </select>
+        <span class="revision-indicator" id="revisionIndicator">
+            <i class="fas fa-check-circle" style="color: #16a34a;"></i>
+            Revisando: <span id="revisionTexto">PCA</span>
+        </span>
+    </div>
+
+    <!-- CONTROLES -->
+    <div class="controls">
+        <button class="btn btn-primary" onclick="exportarExcel()"><i class="fas fa-file-excel"></i> Exportar Excel</button>
+        <button class="btn btn-success" onclick="marcarTodosCompletos()"><i class="fas fa-check-double"></i> Todos Completos</button>
+        <button class="btn btn-warning" onclick="limpiarTodo()"><i class="fas fa-undo"></i> Reiniciar</button>
+        <button class="btn btn-info" onclick="guardarDatos()"><i class="fas fa-save"></i> Guardar</button>
+        <button class="btn btn-secondary" onclick="descargarComoHTML()"><i class="fas fa-download"></i> Descargar HTML</button>
+        <input type="date" id="fechaActual" style="padding:10px;border-radius:8px;border:2px solid #e2e8f0;font-size:14px;">
+    </div>
+
+    <!-- ESTADÍSTICAS -->
+    <div class="stats">
+        <div class="stat-card"><div class="stat-number" id="totalDocentes">0</div><div class="stat-label">Total Docentes</div></div>
+        <div class="stat-card" style="border-left-color:#16a34a;"><div class="stat-number" id="completados">0</div><div class="stat-label">✅ Completados</div></div>
+        <div class="stat-card" style="border-left-color:#d97706;"><div class="stat-number" id="pendientes">0</div><div class="stat-label">⏳ Pendientes</div></div>
+        <div class="stat-card" style="border-left-color:#3b82f6;"><div class="stat-number" id="notificados">0</div><div class="stat-label">📧 Notificados</div></div>
+        <div class="stat-card" style="border-left-color:#8b5cf6;"><div class="stat-number" id="porcentaje">0%</div><div class="stat-label">📊 Cumplimiento</div></div>
+    </div>
+
+    <!-- ===== HEATMAP ===== -->
+    <div class="heatmap-section">
+        <h2><i class="fas fa-th"></i> Mapa de Calor · Estado por Docente</h2>
+        <div class="heatmap-grid" id="heatmapGrid"></div>
+        <div class="heatmap-legend">
+            <span class="legend-item"><span class="color-box completado"></span> Completado</span>
+            <span class="legend-item"><span class="color-box pendiente"></span> Pendiente</span>
+            <span class="legend-item"><span class="color-box notificado"></span> Notificado</span>
+        </div>
+    </div>
+
+    <!-- TABLA DETALLADA -->
+    <div class="table-container">
+        <h3 style="color:#0c1a4a;margin-bottom:12px;font-size:1rem;"><i class="fas fa-list"></i> Detalle por Docente</h3>
+        <table class="excel-table" id="tablaDocentes">
+            <thead>
+                <tr><th>Nivel</th><th>Docente</th><th>Materia</th><th>Entregado</th><th>Fecha Entrega</th><th>Estado</th><th>Observaciones</th><th>Notificación</th></tr>
+            </thead>
+            <tbody id="cuerpoTabla"></tbody>
+        </table>
+    </div>
+
+    <div class="footer">
+        Hope Christian Academy © 2026-2027 · Sistema de Gestión Docente - Bachillerato
+    </div>
+</div>
+
+<div class="save-notification" id="saveNotification">✅ Datos guardados</div>
+<div class="notification-badge" id="notificationBadge" style="display: none;"></div>
+
+<div class="modal" id="emailModal">
+    <div class="modal-content">
+        <span class="modal-close" onclick="cerrarModal()">×</span>
+        <h3 class="modal-title"><i class="fas fa-envelope"></i> Notificar Coordinador</h3>
+        <div class="modal-info">
+            <p>Se enviará una notificación por correo electrónico a:</p>
+            <p><strong>byron.burbano@hopeacademy.edu.ec</strong></p>
+            <p>Docente: <strong><span id="modalDocente"></span></strong></p>
+            <p>Materia: <strong><span id="modalMateria"></span></strong></p>
+            <p>Nivel: <strong><span id="modalNivel"></span></strong></p>
+            <p>Revisión: <strong><span id="modalRevision"></span></strong></p>
+            <p style="margin-top: 15px; font-size: 0.9em; color: #7f8c8d; background: #f8fafc; padding: 12px; border-radius: 8px; border-left: 4px solid #d97706;">
+                <i class="fas fa-exclamation-triangle" style="color: #d97706;"></i>
+                Este docente <strong>NO HA ENTREGADO</strong> la información requerida.
+            </p>
+        </div>
+        <div style="margin-top: 20px; text-align: center;">
+            <button class="btn btn-primary" onclick="enviarNotificacion()"><i class="fas fa-paper-plane"></i> Enviar Recordatorio</button>
+            <button class="btn btn-danger" onclick="cerrarModal()" style="margin-left: 10px;"><i class="fas fa-times"></i> Cancelar</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ============================================================
+    //  DATOS INICIALES - BACHILLERATO 2026-2027 (ACTUALIZADO)
+    // ============================================================
+    const datosIniciales = {
+        '1ero BGU': [
+            { docente: 'Ms Ingrit Cabezas', materia: 'Matemática' },
+            { docente: 'Mr Dilan Quinchiguango', materia: 'Science Química' },
+            { docente: 'Mr Dilan Quinchiguango', materia: 'Science Biology' },
+            { docente: 'Ms Leslie Baraja', materia: 'History' },
+            { docente: 'Ms Leslie Baraja', materia: 'Citizenship' },
+            { docente: 'Ms Anabel Charcopa', materia: 'Lengua y Literatura' },
+            { docente: 'Mr Darwin Morales', materia: 'English Advanced' },
+            { docente: 'Ms Leslie Baraja', materia: 'English Intermediate' },
+            { docente: 'Ms Jessica Pozo', materia: 'Art' },
+            { docente: 'Mr Vicente Díaz', materia: 'Baloncesto' },
+            { docente: 'Mr Alex Montenegro', materia: 'Futbol' },
+            { docente: 'Ms Leslie Baraja', materia: 'Danza' },
+            { docente: 'Ms Estefanía Asas', materia: 'Formación Espiritual' }
+        ],
+        '2do BGU': [
+            { docente: 'Mr Dilan Quinchiguango', materia: 'Matemática' },
+            { docente: 'Ms Alisson Burbano', materia: 'Science Biology' },
+            { docente: 'Ms Alisson Burbano', materia: 'Science Physics' },
+            { docente: 'Mr Darwin Morales', materia: 'History' },
+            { docente: 'Mr Darwin Morales', materia: 'Philosophy' },
+            { docente: 'Mr Darwin Morales', materia: 'Lengua y Literatura' },
+            { docente: 'Mr Darwin Morales', materia: 'English Advanced' },
+            { docente: 'Ms Leslie Baraja', materia: 'English Intermediate' },
+            { docente: 'Ms Jessica Pozo', materia: 'Art' },
+            { docente: 'Mr Vicente Díaz', materia: 'Baloncesto' },
+            { docente: 'Mr Alex Montenegro', materia: 'Futbol' },
+            { docente: 'Ms Leslie Baraja', materia: 'Danza' },
+            { docente: 'Ms Estefanía Asas', materia: 'Formación Espiritual' }
+        ],
+        '3ero BGU': [
+            { docente: 'Mr Byron Burbano', materia: 'Matemática' },
+            { docente: 'Ms Alisson Burbano', materia: 'Physical Chemistry' },
+            { docente: 'Ms Alisson Burbano', materia: 'Biochemistry' },
+            { docente: 'Ms Leslie Baraja', materia: 'History' },
+            { docente: 'Ms Leslie Baraja', materia: 'AMERICAS & U.S. HISTORY' },
+            { docente: 'Mr Darwin Morales', materia: 'Lengua y Literatura' },
+            { docente: 'Mr Darwin Morales', materia: 'English Advanced' },
+            { docente: 'Ms Leslie Baraja', materia: 'English Intermediate' },
+            { docente: 'Mr Darwin Morales', materia: 'English TOEFL' },
+            { docente: 'Ms Jessica Pozo', materia: 'Art' },
+            { docente: 'Mr Vicente Díaz', materia: 'Baloncesto' },
+            { docente: 'Mr Alex Montenegro', materia: 'Futbol' },
+            { docente: 'Ms Leslie Baraja', materia: 'Danza' },
+            { docente: 'Ms Estefanía Asas', materia: 'Formación Espiritual' }
+        ]
+    };
+
+    const tiposRevision = {
+        'PCA': { nombre: 'PCA (Plan Curricular Anual)', icono: '📋' },
+        'PUD': { nombre: 'PUD (Planificación Unidad Didáctica)', icono: '📝' },
+        'INSUMOS': { nombre: 'Insumos y Materiales', icono: '📦' },
+        'REFUERZOS': { nombre: 'Refuerzos Académicos', icono: '🔄' },
+        'PROYECTOS': { nombre: 'Proyectos', icono: '📌' },
+        'INSTRUMENTOS': { nombre: 'Instrumentos de Evaluación', icono: '📊' }
+    };
+
+    let datosDocentes = [];
+    let contadorDocente = 1;
+    let notificacionesPendientes = 0;
+    let docenteActualNotificacion = null;
+    let tipoRevisionActual = 'PCA';
+
+    // ============================================================
+    //  INICIALIZACIÓN
+    // ============================================================
+    function inicializarApp() {
+        // 1. Generar datos desde cero
+        generarDatosIniciales();
+
+        // 2. Intentar recuperar datos guardados
+        try {
+            const guardado = localStorage.getItem('checklistBachillerato');
+            if (guardado) {
+                const parsed = JSON.parse(guardado);
+                if (parsed.datosDocentes && parsed.datosDocentes.length === datosDocentes.length) {
+                    datosDocentes = parsed.datosDocentes;
+                    contadorDocente = parsed.contadorDocente || datosDocentes.length + 1;
+                    notificacionesPendientes = parsed.notificacionesPendientes || 0;
+                    tipoRevisionActual = parsed.tipoRevisionActual || 'PCA';
+                }
+            }
+        } catch(e) { /* ignorar errores de localStorage */ }
+
+        // 3. Renderizar todo
+        renderizarTodo();
+        document.getElementById('fechaActual').value = new Date().toISOString().split('T')[0];
+        document.getElementById('tipoRevision').value = tipoRevisionActual;
+        actualizarIndicadorRevision();
+        actualizarContadorNotificaciones();
+    }
+
+    function generarDatosIniciales() {
+        datosDocentes = [];
+        contadorDocente = 1;
+        Object.keys(datosIniciales).forEach(nivel => {
+            datosIniciales[nivel].forEach(item => {
+                datosDocentes.push({
+                    id: contadorDocente++,
+                    nivel: nivel,
+                    docente: item.docente,
+                    materia: item.materia,
+                    entregado: false,
+                    fechaEntrega: '',
+                    observaciones: '',
+                    notificado: false,
+                    fechaNotificacion: ''
+                });
+            });
+        });
+    }
+
+    // ============================================================
+    //  TIPO DE REVISIÓN
+    // ============================================================
+    function cambiarTipoRevision() {
+        const selector = document.getElementById('tipoRevision');
+        tipoRevisionActual = selector.value;
+        actualizarIndicadorRevision();
+        mostrarNotificacion(`Cambiado a: ${tiposRevision[tipoRevisionActual].nombre}`, 'info');
+        guardarDatos();
+    }
+
+    function actualizarIndicadorRevision() {
+        const info = tiposRevision[tipoRevisionActual];
+        document.getElementById('revisionTexto').textContent = info.nombre;
+        const indicador = document.getElementById('revisionIndicator');
+        const colores = {
+            'PCA': '#3b82f6',
+            'PUD': '#16a34a',
+            'INSUMOS': '#d97706',
+            'REFUERZOS': '#ec4899',
+            'PROYECTOS': '#7c3aed',
+            'INSTRUMENTOS': '#dc2626'
+        };
+        indicador.style.borderLeftColor = colores[tipoRevisionActual] || '#3b82f6';
+    }
+
+    // ============================================================
+    //  RENDERIZADO
+    // ============================================================
+    function renderizarTodo() {
+        renderizarHeatmap();
+        renderizarTablaDetallada();
+        actualizarEstadisticas();
+        actualizarContadorNotificaciones();
+    }
+
+    function renderizarHeatmap() {
+        const grid = document.getElementById('heatmapGrid');
+        grid.innerHTML = '';
+
+        datosDocentes.forEach(d => {
+            const celda = document.createElement('div');
+            celda.className = 'heatmap-cell';
+
+            let estadoClase = 'sin-info';
+            let estadoTexto = 'Sin info';
+            let icono = '❓';
+            if (d.entregado) {
+                estadoClase = 'completado';
+                estadoTexto = 'Completado';
+                icono = '✅';
+            } else if (d.notificado) {
+                estadoClase = 'notificado';
+                estadoTexto = 'Notificado';
+                icono = '📧';
+            } else {
+                estadoClase = 'pendiente';
+                estadoTexto = 'Pendiente';
+                icono = '⏳';
+            }
+
+            celda.classList.add(estadoClase);
+            celda.innerHTML = `
+                <div class="estado-icono">${icono}</div>
+                <div class="docente-nombre">${d.docente}</div>
+                <div class="docente-materia">${d.materia}</div>
+                <div class="tooltip">
+                    <div class="tt-row"><span class="tt-label">Docente</span><span>${d.docente}</span></div>
+                    <div class="tt-row"><span class="tt-label">Materia</span><span>${d.materia}</span></div>
+                    <div class="tt-row"><span class="tt-label">Nivel</span><span>${d.nivel}</span></div>
+                    <div class="tt-row"><span class="tt-label">Estado</span><span>${estadoTexto}</span></div>
+                    ${d.fechaEntrega ? `<div class="tt-row"><span class="tt-label">Fecha</span><span>${d.fechaEntrega}</span></div>` : ''}
+                    <div class="tt-row"><span class="tt-label">Revisión</span><span>${tiposRevision[tipoRevisionActual].nombre}</span></div>
+                </div>
+            `;
+
+            celda.addEventListener('click', function(e) {
+                if (e.target.closest('.tooltip')) return;
+                toggleEntregado(d.id, !d.entregado);
+            });
+
+            grid.appendChild(celda);
+        });
+    }
+
+    function renderizarTablaDetallada() {
+        const tbody = document.getElementById('cuerpoTabla');
+        tbody.innerHTML = '';
+        let nivelActual = '';
+
+        datosDocentes.forEach(d => {
+            const fila = document.createElement('tr');
+            const celdaNivel = nivelActual !== d.nivel ? d.nivel : '';
+            if (nivelActual !== d.nivel) nivelActual = d.nivel;
+
+            let estadoClase = '', estadoTexto = '';
+            if (d.notificado) { estadoClase = 'status-notificado'; estadoTexto = 'Notificado'; }
+            else if (d.entregado) { estadoClase = 'status-completado'; estadoTexto = 'Completado'; }
+            else { estadoClase = 'status-pendiente'; estadoTexto = 'Pendiente'; }
+
+            let notifHTML = '';
+            if (!d.entregado && !d.notificado) {
+                notifHTML = `<button class="notify-btn" onclick="mostrarModalNotificacion(${d.id})"><i class="fas fa-bell"></i> Notificar</button>`;
+            } else if (d.notificado) {
+                notifHTML = `<span class="notify-btn-notificado"><i class="fas fa-check-circle"></i> ${d.fechaNotificacion || 'Notificado'}</span>`;
+            } else {
+                notifHTML = `<span style="color:#16a34a;font-weight:600;"><i class="fas fa-check-circle"></i> Completado</span>`;
+            }
+
+            fila.innerHTML = `
+                <td><strong>${celdaNivel}</strong></td>
+                <td>${d.docente}</td>
+                <td>${d.materia}</td>
+                <td><input type="checkbox" class="custom-checkbox" ${d.entregado ? 'checked' : ''} onchange="toggleEntregado(${d.id}, this.checked)"></td>
+                <td><input type="date" value="${d.fechaEntrega}" onchange="actualizarCampo(${d.id}, 'fechaEntrega', this.value)" style="padding:6px;border-radius:6px;border:1px solid #d1d5db;width:100%;"></td>
+                <td><span class="status-badge ${estadoClase}">${estadoTexto}</span></td>
+                <td><textarea onchange="actualizarCampo(${d.id}, 'observaciones', this.value)" style="width:100%;padding:6px;border-radius:6px;border:1px solid #d1d5db;min-height:35px;font-size:0.75rem;">${d.observaciones}</textarea></td>
+                <td>${notifHTML}</td>
+            `;
+            tbody.appendChild(fila);
+        });
+    }
+
+    // ============================================================
+    //  ACCIONES
+    // ============================================================
+    function toggleEntregado(id, checked) {
+        const d = datosDocentes.find(x => x.id === id);
+        if (!d) return;
+        if (checked && d.notificado) {
+            d.notificado = false;
+            d.fechaNotificacion = '';
+            notificacionesPendientes--;
+        }
+        d.entregado = checked;
+        if (checked && !d.fechaEntrega) {
+            d.fechaEntrega = new Date().toISOString().split('T')[0];
+        }
+        if (!checked) d.fechaEntrega = '';
+        renderizarTodo();
+        guardarDatos();
+    }
+
+    function actualizarCampo(id, campo, valor) {
+        const d = datosDocentes.find(x => x.id === id);
+        if (d) d[campo] = valor;
+        renderizarTodo();
+        guardarDatos();
+    }
+
+    function mostrarModalNotificacion(id) {
+        docenteActualNotificacion = datosDocentes.find(d => d.id === id);
+        if (docenteActualNotificacion) {
+            document.getElementById('modalDocente').textContent = docenteActualNotificacion.docente;
+            document.getElementById('modalMateria').textContent = docenteActualNotificacion.materia;
+            document.getElementById('modalNivel').textContent = docenteActualNotificacion.nivel;
+            document.getElementById('modalRevision').textContent = tiposRevision[tipoRevisionActual].nombre;
+            document.getElementById('emailModal').style.display = 'flex';
+        }
+    }
+
+    function cerrarModal() {
+        document.getElementById('emailModal').style.display = 'none';
+    }
+
+    function enviarNotificacion() {
+        if (docenteActualNotificacion) {
+            const fechaActual = new Date().toLocaleString();
+            docenteActualNotificacion.notificado = true;
+            docenteActualNotificacion.fechaNotificacion = fechaActual.split(',')[0];
+            notificacionesPendientes++;
+            renderizarTodo();
+            guardarDatos();
+            cerrarModal();
+            mostrarNotificacion(`📧 Recordatorio enviado a ${docenteActualNotificacion.docente}`, 'info');
+        }
+    }
+
+    function marcarTodosCompletos() {
+        const fecha = new Date().toISOString().split('T')[0];
+        datosDocentes.forEach(d => {
+            d.entregado = true;
+            d.notificado = false;
+            d.fechaNotificacion = '';
+            if (!d.fechaEntrega) d.fechaEntrega = fecha;
+        });
+        notificacionesPendientes = 0;
+        renderizarTodo();
+        guardarDatos();
+        mostrarNotificacion('✅ Todos marcados como completos', 'info');
+    }
+
+    function limpiarTodo() {
+        if (!confirm('¿Reiniciar todos los estados a Pendiente?')) return;
+        datosDocentes.forEach(d => {
+            d.entregado = false;
+            d.fechaEntrega = '';
+            d.observaciones = '';
+            d.notificado = false;
+            d.fechaNotificacion = '';
+        });
+        notificacionesPendientes = 0;
+        renderizarTodo();
+        guardarDatos();
+        mostrarNotificacion('🔄 Datos reiniciados', 'warning');
+    }
+
+    function guardarDatos() {
+        const datos = { datosDocentes, contadorDocente, notificacionesPendientes, tipoRevisionActual };
+        localStorage.setItem('checklistBachillerato', JSON.stringify(datos));
+        mostrarNotificacion('💾 Datos guardados', 'success');
+    }
+
+    function actualizarEstadisticas() {
+        const total = datosDocentes.length;
+        const completados = datosDocentes.filter(d => d.entregado).length;
+        const pendientes = datosDocentes.filter(d => !d.entregado && !d.notificado).length;
+        const notificados = datosDocentes.filter(d => d.notificado).length;
+        const porcentaje = total ? Math.round((completados / total) * 100) : 0;
+
+        document.getElementById('totalDocentes').textContent = total;
+        document.getElementById('completados').textContent = completados;
+        document.getElementById('pendientes').textContent = pendientes;
+        document.getElementById('notificados').textContent = notificados;
+        document.getElementById('porcentaje').textContent = porcentaje + '%';
+    }
+
+    function actualizarContadorNotificaciones() {
+        const badge = document.getElementById('notificationBadge');
+        if (notificacionesPendientes > 0) {
+            badge.style.display = 'flex';
+            badge.textContent = notificacionesPendientes;
+        } else {
+            badge.style.display = 'none';
+        }
+    }
+
+    function mostrarNotificacion(mensaje, tipo = 'success') {
+        const notification = document.getElementById('saveNotification');
+        notification.textContent = mensaje;
+        if (tipo === 'success') notification.style.background = '#16a34a';
+        else if (tipo === 'warning') notification.style.background = '#d97706';
+        else if (tipo === 'info') notification.style.background = '#3b82f6';
+        notification.classList.add('show');
+        setTimeout(() => notification.classList.remove('show'), 3000);
+    }
+
+    // ============================================================
+    //  EXPORTAR
+    // ============================================================
+    function exportarExcel() {
+        const info = tiposRevision[tipoRevisionActual];
+        let html = `
+            <html><head><meta charset="UTF-8">
+            <style>
+                table { border-collapse: collapse; width: 100%; }
+                th, td { border: 1px solid #000; padding: 8px; text-align: left; }
+                th { background: #0c1a4a; color: white; font-weight: bold; }
+                .completado { background: #d1fae5; }
+                .pendiente { background: #fef3c7; }
+                .notificado { background: #dbeafe; }
+            </style>
+            </head><body>
+            <h1>Hope Christian Academy - Heatmap Docentes Bachillerato 2026-2027</h1>
+            <h2>Revisión: ${info.icono} ${info.nombre}</h2>
+            <table>
+                <tr><th>Nivel</th><th>Docente</th><th>Materia</th><th>Estado</th><th>Fecha Entrega</th><th>Notificado</th></tr>`;
+        datosDocentes.forEach(d => {
+            let estado = 'Pendiente';
+            let clase = 'pendiente';
+            if (d.entregado) { estado = 'Completado'; clase = 'completado'; }
+            else if (d.notificado) { estado = 'Notificado'; clase = 'notificado'; }
+            html += `<tr class="${clase}">
+                <td>${d.nivel}</td>
+                <td>${d.docente}</td>
+                <td>${d.materia}</td>
+                <td>${estado}</td>
+                <td>${d.fechaEntrega || '-'}</td>
+                <td>${d.notificado ? 'Sí' : 'No'}</td>
+            </tr>`;
+        });
+        html += `</table></body></html>`;
+
+        const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `heatmap_bachillerato_${tipoRevisionActual.toLowerCase()}_2026-2027.xls`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        mostrarNotificacion('📊 Excel generado', 'info');
+    }
+
+    function descargarComoHTML() {
+        guardarDatos();
+        const html = document.documentElement.outerHTML;
+        const blob = new Blob([html], { type: 'text/html' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'checklist_bachillerato_2026-2027.html';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        mostrarNotificacion('📥 HTML descargado', 'success');
+    }
+
+    // ============================================================
+    //  INICIO
+    // ============================================================
+    window.onload = inicializarApp;
+</script>
+
+</body>
+</html>
